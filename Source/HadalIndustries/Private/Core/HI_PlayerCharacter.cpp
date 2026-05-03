@@ -10,6 +10,7 @@
 #include "InputActionValue.h"
 #include "InputMappingContext.h"
 
+#include "BuildSystem/HI_BuildManagerComponent.h"
 #include "Core/HI_Log.h"
 #include "Interaction/HI_InteractionComponent.h"
 #include "Inventory/HI_InventoryComponent.h"
@@ -50,6 +51,7 @@ AHI_PlayerCharacter::AHI_PlayerCharacter()
 	InteractionComponent = CreateDefaultSubobject<UHI_InteractionComponent>(TEXT("InteractionComponent"));
 	ScannerComponent = CreateDefaultSubobject<UHI_ScannerComponent>(TEXT("ScannerComponent"));
 	InventoryComponent = CreateDefaultSubobject<UHI_InventoryComponent>(TEXT("InventoryComponent"));
+	BuildManagerComponent = CreateDefaultSubobject<UHI_BuildManagerComponent>(TEXT("BuildManagerComponent"));
 }
 
 void AHI_PlayerCharacter::GrantItem(FName ItemId, int32 Quantity)
@@ -109,6 +111,14 @@ void AHI_PlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInput
 		}
 		if (InteractAction)    EIC->BindAction(InteractAction,    ETriggerEvent::Started,   this, &AHI_PlayerCharacter::HandleInteract);
 		if (ScanAction)        EIC->BindAction(ScanAction,        ETriggerEvent::Started,   this, &AHI_PlayerCharacter::HandleScan);
+
+		if (BuildToggleAction)    EIC->BindAction(BuildToggleAction,    ETriggerEvent::Started,   this, &AHI_PlayerCharacter::HandleBuildToggle);
+		if (RotatePreviewAction)  EIC->BindAction(RotatePreviewAction,  ETriggerEvent::Started,   this, &AHI_PlayerCharacter::HandleRotatePreview);
+		if (CycleBuildableAction) EIC->BindAction(CycleBuildableAction, ETriggerEvent::Triggered, this, &AHI_PlayerCharacter::HandleCycleBuildable);
+		if (ConfirmPlaceAction)   EIC->BindAction(ConfirmPlaceAction,   ETriggerEvent::Started,   this, &AHI_PlayerCharacter::HandleConfirmPlace);
+		if (CancelPlaceAction)    EIC->BindAction(CancelPlaceAction,    ETriggerEvent::Started,   this, &AHI_PlayerCharacter::HandleCancelPlace);
+		if (ToggleSnapAction)     EIC->BindAction(ToggleSnapAction,     ETriggerEvent::Started,   this, &AHI_PlayerCharacter::HandleToggleSnap);
+		if (DemolishAction)       EIC->BindAction(DemolishAction,       ETriggerEvent::Started,   this, &AHI_PlayerCharacter::HandleDemolish);
 	}
 	else
 	{
@@ -180,5 +190,71 @@ void AHI_PlayerCharacter::HandleScan()
 	if (ScannerComponent)
 	{
 		ScannerComponent->Pulse();
+	}
+}
+
+void AHI_PlayerCharacter::HandleBuildToggle()
+{
+	if (BuildManagerComponent)
+	{
+		BuildManagerComponent->ToggleBuildMode();
+	}
+}
+
+void AHI_PlayerCharacter::HandleRotatePreview()
+{
+	if (BuildManagerComponent)
+	{
+		BuildManagerComponent->RotatePreview(1.0f);
+	}
+}
+
+void AHI_PlayerCharacter::HandleCycleBuildable(const FInputActionValue& Value)
+{
+	if (!BuildManagerComponent) return;
+	const float Axis = Value.Get<float>();
+	if (FMath::IsNearlyZero(Axis)) return;
+	BuildManagerComponent->CycleBuildable(Axis > 0.f ? +1 : -1);
+}
+
+void AHI_PlayerCharacter::HandleConfirmPlace()
+{
+	if (!BuildManagerComponent) return;
+	if (BuildManagerComponent->IsBuildModeActive())
+	{
+		BuildManagerComponent->TryConfirmPlace();
+	}
+	else if (BuildManagerComponent->IsDemolishModeActive())
+	{
+		BuildManagerComponent->DemolishTargeted();
+	}
+}
+
+void AHI_PlayerCharacter::HandleCancelPlace()
+{
+	if (!BuildManagerComponent) return;
+	if (BuildManagerComponent->IsBuildModeActive())
+	{
+		BuildManagerComponent->CancelPlacement();
+	}
+	else if (BuildManagerComponent->IsDemolishModeActive())
+	{
+		BuildManagerComponent->ToggleDemolishMode();
+	}
+}
+
+void AHI_PlayerCharacter::HandleToggleSnap()
+{
+	if (BuildManagerComponent)
+	{
+		BuildManagerComponent->ToggleSnap();
+	}
+}
+
+void AHI_PlayerCharacter::HandleDemolish()
+{
+	if (BuildManagerComponent)
+	{
+		BuildManagerComponent->ToggleDemolishMode();
 	}
 }

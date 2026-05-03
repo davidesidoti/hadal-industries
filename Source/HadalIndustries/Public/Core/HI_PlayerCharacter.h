@@ -11,6 +11,7 @@ class UInputMappingContext;
 class UHI_InteractionComponent;
 class UHI_ScannerComponent;
 class UHI_InventoryComponent;
+class UHI_BuildManagerComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -32,6 +33,9 @@ class HADALINDUSTRIES_API AHI_PlayerCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hadal|Components", meta = (AllowPrivateAccess = "true"))
 	UHI_InventoryComponent* InventoryComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hadal|Components", meta = (AllowPrivateAccess = "true"))
+	UHI_BuildManagerComponent* BuildManagerComponent;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
@@ -58,6 +62,27 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
 	UInputAction* ScanAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
+	UInputAction* BuildToggleAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
+	UInputAction* RotatePreviewAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
+	UInputAction* CycleBuildableAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
+	UInputAction* ConfirmPlaceAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
+	UInputAction* CancelPlaceAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
+	UInputAction* ToggleSnapAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
+	UInputAction* DemolishAction;
+
 public:
 	AHI_PlayerCharacter();
 
@@ -73,6 +98,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Hadal|Components")
 	UHI_InventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Hadal|Components")
+	UHI_BuildManagerComponent* GetBuildManagerComponent() const { return BuildManagerComponent; }
 
 	/** Console-callable debug grant. Usage in console: GrantItem res_manganese_nodule 5 */
 	UFUNCTION(Exec, BlueprintCallable, Category = "Hadal|Debug")
@@ -91,6 +119,13 @@ protected:
 	void HandleJumpEnd();
 	void HandleInteract();
 	void HandleScan();
+	void HandleBuildToggle();
+	void HandleRotatePreview();
+	void HandleCycleBuildable(const FInputActionValue& Value);
+	void HandleConfirmPlace();
+	void HandleCancelPlace();
+	void HandleToggleSnap();
+	void HandleDemolish();
 
 private:
 	bool bIsAscending = false;
