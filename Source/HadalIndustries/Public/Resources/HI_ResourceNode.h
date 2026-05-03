@@ -31,6 +31,13 @@ public:
 	virtual FText GetInteractionPrompt_Implementation() const override;
 	virtual bool CanBeInteractedWith_Implementation(const AActor* Interactor) const override;
 
+	/**
+	 * Programmatic yield consumption used by automated extractors.
+	 * Returns true and writes the source ItemId on success; false if depleted or no ItemDefinition.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Hadal|Resource")
+	bool TryConsumeYield(int32 Amount, FName& OutItemId);
+
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hadal|Components", meta = (AllowPrivateAccess = "true"))
 	UStaticMeshComponent* MeshComponent;

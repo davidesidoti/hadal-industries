@@ -230,17 +230,28 @@ bool UHI_BuildManagerComponent::DemolishTargeted()
 	AHI_BuildableActor* Target = Cast<AHI_BuildableActor>(Hit.GetActor());
 	if (!Target) return false;
 
-	// Refund.
-	if (Target->SourceDefinition && DemolishRefundFraction > 0.f)
+	UHI_InventoryComponent* PlayerInv = GetOwnerInventory();
+
+	// Let the buildable dump any contained inventory back to the player before destruction.
+	// Default no-op on AHI_BuildableActor; AHI_MachineBase overrides to drain Input/Output.
+	Target->OnPreDemolish(PlayerInv);
+
+	// Refund a fraction of the build cost.
+	if (Target->SourceDefinition && DemolishRefundFraction > 0.f && PlayerInv)
 	{
-		if (UHI_InventoryComponent* Inventory = GetOwnerInventory())
+		for (const FHI_ItemStack& Stack : Target->SourceDefinition->BuildCost)
 		{
-			for (const FHI_ItemStack& Stack : Target->SourceDefinition->BuildCost)
-			{
-				const int32 RefundQty = FMath::Max(1, FMath::FloorToInt(Stack.Quantity * DemolishRefundFraction));
-				Inventory->AddStack(Stack.ItemId, RefundQty);
-			}
+			const int32 RefundQty = FMath::Max(1, FMath::FloorToInt(Stack.Quantity * DemolishRefundFraction));
+			PlayerInv->AddStack(Stack.ItemId, RefundQty);
 		}
+	}
+
+	// Highlight cache is keyed by mesh components on this target — drop entries before Destroy()
+	// so we don't leave stale TWeakObjectPtr entries lingering until the next sweep.
+	if (Target == CurrentDemolishTarget)
+	{
+		ClearHighlight(CurrentDemolishTarget);
+		CurrentDemolishTarget = nullptr;
 	}
 
 	UE_LOG(LogHadalIndustries, Log, TEXT("Demolished %s (refund %.0f%%)"),

@@ -72,3 +72,21 @@ bool AHI_ResourceNode::CanBeInteractedWith_Implementation(const AActor* Interact
 {
 	return ItemDefinition != nullptr && RemainingYield > 0;
 }
+
+bool AHI_ResourceNode::TryConsumeYield(int32 Amount, FName& OutItemId)
+{
+	if (!ItemDefinition || Amount <= 0 || RemainingYield < Amount)
+	{
+		return false;
+	}
+
+	RemainingYield -= Amount;
+	OutItemId = ItemDefinition->ItemId;
+
+	if (RemainingYield <= 0)
+	{
+		UE_LOG(LogHadalIndustries, Log, TEXT("ResourceNode %s (%s): depleted"),
+			*GetName(), *ItemDefinition->ItemId.ToString());
+	}
+	return true;
+}

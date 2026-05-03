@@ -16,7 +16,8 @@ Working towards an MVP whose loop is *Explore → Scan → Build → Extract →
 | M1 — Player + Interaction (FP camera, swim, scanner) | ✅ |
 | M2 — Inventory + Items (UDataAsset items, slot inventory) | ✅ |
 | M3 — Build system (ghost preview, snap, demolish) | ✅ |
-| M4 — Machines + Production | next |
+| M4a — Machine base + Extractor (auto-bind, timer production) | ✅ |
+| M4b — Recipe + Fabricator | next |
 | M5 — Power + Logistics | |
 | M6 — Pressure + Depth | |
 | M7 — Threat + Creature | |
@@ -141,6 +142,7 @@ hadal-industries/
 │       │   ├── Core/                # HI_Log, HI_Types, HI_GameMode, HI_PlayerController, HI_PlayerCharacter
 │       │   ├── Interaction/         # HI_InteractableInterface, HI_InteractionComponent
 │       │   ├── Inventory/           # HI_ItemDefinition, HI_InventoryComponent
+│       │   ├── Machines/            # HI_MachineBase, HI_ExtractorMachine
 │       │   ├── Resources/           # HI_ResourceNode
 │       │   └── Scanning/            # HI_ScannerComponent
 │       └── Private/                 # mirror of Public/
@@ -149,7 +151,7 @@ hadal-industries/
 └── README.md                        # this file
 ```
 
-Empty future-scope folders (`Public/Power`, `Public/Pressure`, `Public/Recipes`, `Public/Save`, `Public/Machines`, `Public/Missions`) will be populated milestone by milestone.
+Empty future-scope folders (`Public/Power`, `Public/Pressure`, `Public/Recipes`, `Public/Save`, `Public/Missions`) will be populated milestone by milestone.
 
 ---
 

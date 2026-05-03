@@ -11,6 +11,17 @@ enum class EHI_PressureTier : uint8
 	Tier2	UMETA(DisplayName = "Tier 2 (800-1200m)")
 };
 
+UENUM(BlueprintType)
+enum class EHI_MachineState : uint8
+{
+	Idle			UMETA(DisplayName = "Idle"),
+	Producing		UMETA(DisplayName = "Producing"),
+	OutputFull		UMETA(DisplayName = "Output Full"),
+	NoBoundNode		UMETA(DisplayName = "No Bound Node"),
+	NoPower			UMETA(DisplayName = "No Power"),
+	OverPressure	UMETA(DisplayName = "Over Pressure")
+};
+
 USTRUCT(BlueprintType)
 struct HADALINDUSTRIES_API FHI_ItemStack
 {
