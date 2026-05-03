@@ -10,6 +10,7 @@ class UInputAction;
 class UInputMappingContext;
 class UHI_InteractionComponent;
 class UHI_ScannerComponent;
+class UHI_InventoryComponent;
 struct FInputActionValue;
 
 UCLASS()
@@ -28,6 +29,9 @@ class HADALINDUSTRIES_API AHI_PlayerCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hadal|Components", meta = (AllowPrivateAccess = "true"))
 	UHI_ScannerComponent* ScannerComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Hadal|Components", meta = (AllowPrivateAccess = "true"))
+	UHI_InventoryComponent* InventoryComponent;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Input")
@@ -66,6 +70,16 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Hadal|Components")
 	UHI_ScannerComponent* GetScannerComponent() const { return ScannerComponent; }
+
+	UFUNCTION(BlueprintPure, Category = "Hadal|Components")
+	UHI_InventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
+	/** Console-callable debug grant. Usage in console: GrantItem res_manganese_nodule 5 */
+	UFUNCTION(Exec, BlueprintCallable, Category = "Hadal|Debug")
+	void GrantItem(FName ItemId, int32 Quantity);
+
+	UFUNCTION(Exec, BlueprintCallable, Category = "Hadal|Debug")
+	void DumpInventory();
 
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;

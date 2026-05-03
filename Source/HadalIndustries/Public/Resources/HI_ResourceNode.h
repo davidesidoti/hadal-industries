@@ -6,6 +6,7 @@
 #include "HI_ResourceNode.generated.h"
 
 class UStaticMeshComponent;
+class UHI_ItemDefinition;
 
 UCLASS()
 class HADALINDUSTRIES_API AHI_ResourceNode : public AActor, public IHI_InteractableInterface
@@ -15,14 +16,16 @@ class HADALINDUSTRIES_API AHI_ResourceNode : public AActor, public IHI_Interacta
 public:
 	AHI_ResourceNode();
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Resource")
-	FName ResourceId = TEXT("res_manganese_nodule");
+	/** Item produced when this node is harvested. Designer assigns a UHI_ItemDefinition Data Asset. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hadal|Resource")
+	UHI_ItemDefinition* ItemDefinition = nullptr;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Resource")
-	FText DisplayName = NSLOCTEXT("HadalIndustries", "ManganeseNodule", "Manganese Nodule");
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Hadal|Resource", meta = (ClampMin = "0"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hadal|Resource", meta = (ClampMin = "0"))
 	int32 RemainingYield = 5;
+
+	/** Quantity of the item produced per successful interaction. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hadal|Resource", meta = (ClampMin = "1"))
+	int32 YieldPerInteraction = 1;
 
 	virtual void OnInteract_Implementation(AActor* Interactor) override;
 	virtual FText GetInteractionPrompt_Implementation() const override;

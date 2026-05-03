@@ -12,6 +12,7 @@
 
 #include "Core/HI_Log.h"
 #include "Interaction/HI_InteractionComponent.h"
+#include "Inventory/HI_InventoryComponent.h"
 #include "Scanning/HI_ScannerComponent.h"
 
 AHI_PlayerCharacter::AHI_PlayerCharacter()
@@ -48,6 +49,28 @@ AHI_PlayerCharacter::AHI_PlayerCharacter()
 
 	InteractionComponent = CreateDefaultSubobject<UHI_InteractionComponent>(TEXT("InteractionComponent"));
 	ScannerComponent = CreateDefaultSubobject<UHI_ScannerComponent>(TEXT("ScannerComponent"));
+	InventoryComponent = CreateDefaultSubobject<UHI_InventoryComponent>(TEXT("InventoryComponent"));
+}
+
+void AHI_PlayerCharacter::GrantItem(FName ItemId, int32 Quantity)
+{
+	if (!InventoryComponent)
+	{
+		UE_LOG(LogHadalIndustries, Warning, TEXT("GrantItem: no InventoryComponent"));
+		return;
+	}
+	const int32 Leftover = InventoryComponent->AddStack(ItemId, Quantity);
+	UE_LOG(LogHadalIndustries, Log, TEXT("GrantItem: %s x%d (leftover %d)"),
+		*ItemId.ToString(), Quantity, Leftover);
+	InventoryComponent->DebugLogContents();
+}
+
+void AHI_PlayerCharacter::DumpInventory()
+{
+	if (InventoryComponent)
+	{
+		InventoryComponent->DebugLogContents();
+	}
 }
 
 void AHI_PlayerCharacter::PawnClientRestart()
