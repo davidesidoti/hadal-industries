@@ -19,19 +19,26 @@ AHI_MachineBase::AHI_MachineBase()
 void AHI_MachineBase::BeginPlay()
 {
 	Super::BeginPlay();
-
 	ActiveMachines.Add(this);
+	RestartProductionTimer();
+}
 
-	if (UWorld* World = GetWorld())
-	{
-		World->GetTimerManager().SetTimer(
-			ProductionTimerHandle,
-			this,
-			&AHI_MachineBase::TickProduction,
-			FMath::Max(0.1f, ProductionInterval),
-			/*bLoop=*/ true,
-			/*FirstDelay=*/ FMath::Max(0.1f, ProductionInterval));
-	}
+void AHI_MachineBase::RestartProductionTimer()
+{
+	UWorld* World = GetWorld();
+	if (!World) return;
+
+	FTimerManager& TM = World->GetTimerManager();
+	TM.ClearTimer(ProductionTimerHandle);
+
+	const float Interval = FMath::Max(0.1f, ProductionInterval);
+	TM.SetTimer(
+		ProductionTimerHandle,
+		this,
+		&AHI_MachineBase::TickProduction,
+		Interval,
+		/*bLoop=*/ true,
+		/*FirstDelay=*/ Interval);
 }
 
 void AHI_MachineBase::EndPlay(const EEndPlayReason::Type Reason)
@@ -54,11 +61,12 @@ void AHI_MachineBase::TickProduction()
 	// Base implementation is intentionally empty.
 }
 
-void AHI_MachineBase::SetState(EHI_MachineState NewState)
+bool AHI_MachineBase::SetState(EHI_MachineState NewState)
 {
-	if (State == NewState) return;
+	if (State == NewState) return false;
 	State = NewState;
 	OnMachineStateChanged.Broadcast(State);
+	return true;
 }
 
 int32 AHI_MachineBase::DrainInventoryInto(UHI_InventoryComponent* Source, UHI_InventoryComponent* Target)

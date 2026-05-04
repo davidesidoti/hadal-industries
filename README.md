@@ -17,8 +17,8 @@ Working towards an MVP whose loop is *Explore → Scan → Build → Extract →
 | M2 — Inventory + Items (UDataAsset items, slot inventory) | ✅ |
 | M3 — Build system (ghost preview, snap, demolish) | ✅ |
 | M4a — Machine base + Extractor (auto-bind, timer production) | ✅ |
-| M4b — Recipe + Fabricator | next |
-| M5 — Power + Logistics | |
+| M4b — Recipe + Fabricator (Pressure Plate Mk1) | ✅ |
+| M5 — Power + Logistics | next |
 | M6 — Pressure + Depth | |
 | M7 — Threat + Creature | |
 | M8 — Narrative slice | |
@@ -119,13 +119,14 @@ hadal-industries/
 ├── Config/                          # DefaultEngine.ini, DefaultGame.ini, ...
 ├── Content/
 │   ├── Blueprints/                  # BP_HI_GameMode, BP_HI_PlayerCharacter, BP_HI_ResourceNode_Manganese
-│   │   └── Buildables/              # BP_HI_Buildable_Foundation_Mk1, BP_HI_Buildable_Extractor_Mk1
+│   │   └── Buildables/              # BP_HI_Buildable_Foundation_Mk1, BP_HI_Buildable_Extractor_Mk1, BP_HI_Buildable_Fabricator_Mk1
 │   ├── Characters/                  # Mannequin (template carryover, used by player BP)
 │   ├── DeepWaterStation/            # Deep-water environment art (Fab vendored)
 │   ├── HadalIndustries/
 │   │   ├── Data/
-│   │   │   ├── Items/               # DA_Item_Manganese
-│   │   │   └── Buildables/          # DA_Buildable_FoundationMk1, DA_Buildable_ExtractorMk1
+│   │   │   ├── Items/               # DA_Item_Manganese, DA_Item_Basalt, DA_Item_PressurePlateMk1
+│   │   │   ├── Recipes/             # DA_Recipe_PressurePlateMk1
+│   │   │   └── Buildables/          # DA_Buildable_FoundationMk1, DA_Buildable_ExtractorMk1, DA_Buildable_FabricatorMk1
 │   │   ├── Maps/                    # MVP_AbyssalTestSite
 │   │   └── Materials/               # M_BuildGhost
 │   └── Input/
@@ -142,7 +143,8 @@ hadal-industries/
 │       │   ├── Core/                # HI_Log, HI_Types, HI_GameMode, HI_PlayerController, HI_PlayerCharacter
 │       │   ├── Interaction/         # HI_InteractableInterface, HI_InteractionComponent
 │       │   ├── Inventory/           # HI_ItemDefinition, HI_InventoryComponent
-│       │   ├── Machines/            # HI_MachineBase, HI_ExtractorMachine
+│       │   ├── Machines/            # HI_MachineBase, HI_ExtractorMachine, HI_FabricatorMachine
+│       │   ├── Recipes/             # HI_RecipeDefinition, HI_RecipeProcessorComponent
 │       │   ├── Resources/           # HI_ResourceNode
 │       │   └── Scanning/            # HI_ScannerComponent
 │       └── Private/                 # mirror of Public/
@@ -151,7 +153,7 @@ hadal-industries/
 └── README.md                        # this file
 ```
 
-Empty future-scope folders (`Public/Power`, `Public/Pressure`, `Public/Recipes`, `Public/Save`, `Public/Missions`) will be populated milestone by milestone.
+Empty future-scope folders (`Public/Power`, `Public/Pressure`, `Public/Save`, `Public/Missions`) will be populated milestone by milestone.
 
 ---
 

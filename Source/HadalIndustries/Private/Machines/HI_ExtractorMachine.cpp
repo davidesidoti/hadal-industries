@@ -16,6 +16,11 @@ void AHI_ExtractorMachine::BeginPlay()
 {
 	Super::BeginPlay();
 	TryBindNearestNode();
+	if (!BoundNode.IsValid())
+	{
+		UE_LOG(LogHadalIndustries, Log, TEXT("Extractor %s: no resource node within %.0f cm at placement"),
+			*GetName(), BindRadius);
+	}
 }
 
 void AHI_ExtractorMachine::TryBindNearestNode()
@@ -56,11 +61,7 @@ void AHI_ExtractorMachine::TryBindNearestNode()
 			*Closest->ItemDefinition->ItemId.ToString(),
 			Closest->RemainingYield);
 	}
-	else
-	{
-		UE_LOG(LogHadalIndustries, Log, TEXT("Extractor %s: no resource node within %.0f cm"),
-			*GetName(), BindRadius);
-	}
+	// "No node found" is intentionally silent here — TickProduction logs the state transition once.
 }
 
 void AHI_ExtractorMachine::TickProduction()
@@ -68,7 +69,13 @@ void AHI_ExtractorMachine::TickProduction()
 	if (!IsProductionAllowed())
 	{
 		// Pick the most descriptive failure state. M5/M6 will fold their checks here.
-		SetState(bPowerSatisfied ? EHI_MachineState::OverPressure : EHI_MachineState::NoPower);
+		const EHI_MachineState NewState = bPowerSatisfied ? EHI_MachineState::OverPressure : EHI_MachineState::NoPower;
+		if (SetState(NewState))
+		{
+			UE_LOG(LogHadalIndustries, Log, TEXT("Extractor %s: paused (%s)"),
+				*GetName(),
+				NewState == EHI_MachineState::NoPower ? TEXT("NoPower") : TEXT("OverPressure"));
+		}
 		return;
 	}
 
@@ -77,7 +84,11 @@ void AHI_ExtractorMachine::TickProduction()
 		TryBindNearestNode();
 		if (!BoundNode.IsValid())
 		{
-			SetState(EHI_MachineState::NoBoundNode);
+			if (SetState(EHI_MachineState::NoBoundNode))
+			{
+				UE_LOG(LogHadalIndustries, Log, TEXT("Extractor %s: idle, no resource node within %.0f cm"),
+					*GetName(), BindRadius);
+			}
 			return;
 		}
 	}
@@ -93,7 +104,11 @@ void AHI_ExtractorMachine::TickProduction()
 	{
 		// Node depleted (or unable to yield). Drop binding so the next tick re-scans.
 		BoundNode.Reset();
-		SetState(EHI_MachineState::NoBoundNode);
+		if (SetState(EHI_MachineState::NoBoundNode))
+		{
+			UE_LOG(LogHadalIndustries, Log, TEXT("Extractor %s: idle, bound node depleted"),
+				*GetName());
+		}
 		return;
 	}
 
@@ -102,9 +117,11 @@ void AHI_ExtractorMachine::TickProduction()
 	{
 		// Output couldn't accept the unit — credit it back to the node so we don't lose yield.
 		BoundNode->RemainingYield += Leftover;
-		SetState(EHI_MachineState::OutputFull);
-		UE_LOG(LogHadalIndustries, Log, TEXT("Extractor %s: output full, %d unit returned to node"),
-			*GetName(), Leftover);
+		if (SetState(EHI_MachineState::OutputFull))
+		{
+			UE_LOG(LogHadalIndustries, Log, TEXT("Extractor %s: output full, %d unit returned to node"),
+				*GetName(), Leftover);
+		}
 		return;
 	}
 

@@ -109,6 +109,11 @@ public:
 	UFUNCTION(Exec, BlueprintCallable, Category = "Hadal|Debug")
 	void DumpInventory();
 
+	/** Console-callable debug: line-trace forward and add items to the targeted machine's InputInventory.
+	 *  Usage: GrantToTargetMachine res_basalt 5 */
+	UFUNCTION(Exec, BlueprintCallable, Category = "Hadal|Debug")
+	void GrantToTargetMachine(FName ItemId, int32 Quantity);
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 

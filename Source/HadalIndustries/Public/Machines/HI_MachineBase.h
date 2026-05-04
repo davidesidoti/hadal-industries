@@ -55,6 +55,10 @@ public:
 	/** All currently-alive machines. Registered in BeginPlay, unregistered in EndPlay. */
 	static TArray<TWeakObjectPtr<AHI_MachineBase>> ActiveMachines;
 
+	/** Clears any running production timer and arms a new one using the current ProductionInterval. */
+	UFUNCTION(BlueprintCallable, Category = "Hadal|Machine")
+	void RestartProductionTimer();
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type Reason) override;
@@ -65,7 +69,8 @@ protected:
 	/** Single accessor — M5/M6 swap the implementation here without touching subclass call sites. */
 	bool IsProductionAllowed() const { return bPowerSatisfied && bPressureSafe; }
 
-	void SetState(EHI_MachineState NewState);
+	/** Returns true when the state actually changed — useful to gate one-shot transition logs. */
+	bool SetState(EHI_MachineState NewState);
 
 	/** Drain every non-empty slot of Source into Target. Returns total quantity moved. */
 	static int32 DrainInventoryInto(UHI_InventoryComponent* Source, UHI_InventoryComponent* Target);

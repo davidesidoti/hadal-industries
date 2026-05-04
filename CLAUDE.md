@@ -18,7 +18,7 @@ The remote is `https://github.com/davidesidoti/hadal-industries`. Branch `main` 
 
 ---
 
-## Milestone status (as of 2026-05-03)
+## Milestone status (as of 2026-05-04)
 
 | | Status | What works |
 |---|---|---|
@@ -26,9 +26,9 @@ The remote is `https://github.com/davidesidoti/hadal-industries`. Branch `main` 
 | **M1** Player + Interaction | ✅ | First-person camera + skeletal mesh, Enhanced Input (Move/Look/Jump/Vertical/Interact/Scan), swim mode via PhysicsVolume, `IHI_InteractableInterface`, `UHI_InteractionComponent` (camera line trace), `UHI_ScannerComponent` (sphere overlap pulse). `MVP_AbyssalTestSite` map populated with floor, lights, water volume, PlayerStart. |
 | **M2** Inventory + Items | ✅ | `UHI_ItemDefinition` (UDataAsset), `UHI_InventoryComponent` (slot-based, `KnownItems` registry, MaxStackSize per item), `AHI_ResourceNode` harvests into player inventory, `Exec` console commands `GrantItem` and `DumpInventory`. `DA_Item_Manganese` is the first item. |
 | **M3** Build system | ✅ | `UHI_BuildableDefinition` (UDataAsset with `BuildCost`, `ActorClass`, `PreviewMesh`), `AHI_BuildableActor` base, `UHI_BuildManagerComponent` with ghost preview (translucent `M_BuildGhost`, valid/invalid color tint), pivot-correct positioning, snap-to-grid (100 cm), collision sweep, cost consumption, demolish mode with red overlay highlight via material swap, 50% refund on demolish. 7 new IAs. Two buildables wired: Foundation Mk1 (free) and Extractor Mk1 (3× manganese). |
-| **M4a** Machine base + Extractor | ✅ | `AHI_MachineBase` (Input/Output `UHI_InventoryComponent` subobjects, `FTimerHandle` production loop, virtual `TickProduction()`, `IsProductionAllowed()` accessor with stub `bPowerSatisfied`/`bPressureSafe`, drain Output via `E` through `IHI_InteractableInterface`, `OnPreDemolish` dumps Input+Output to player). `AHI_ExtractorMachine` (auto-binds nearest `AHI_ResourceNode` within `BindRadius=300cm`, auto-rebinds in `TickProduction`, calls `AHI_ResourceNode::TryConsumeYield`). `EHI_MachineState` enum. `BP_HI_Buildable_Extractor_Mk1` reparented to `AHI_ExtractorMachine`. Static `ActiveMachines` registry. |
-| **M4b** Recipe + Fabricator | next | `UHI_RecipeDefinition` (UDataAsset), `URecipeProcessorComponent`, `AHI_FabricatorMachine`. Pressure Plate Mk1 first recipe. |
-| M5 Power + Logistics | future | |
+| **M4a** Machine base + Extractor | ✅ | `AHI_MachineBase` (Input/Output `UHI_InventoryComponent` subobjects, `FTimerHandle` production loop with `RestartProductionTimer()`, virtual `TickProduction()`, `IsProductionAllowed()` accessor with stub `bPowerSatisfied`/`bPressureSafe`, `SetState` returns bool for transition-gated logging, drain Output via `E` through `IHI_InteractableInterface`, `OnPreDemolish` dumps Input+Output to player). `AHI_ExtractorMachine` (auto-binds nearest `AHI_ResourceNode` within `BindRadius=300cm`, auto-rebinds in `TickProduction`, calls `AHI_ResourceNode::TryConsumeYield`). `EHI_MachineState` enum. Static `ActiveMachines` registry. |
+| **M4b** Recipe + Fabricator | ✅ | `UHI_RecipeDefinition` (UDataAsset: `Inputs`/`Outputs`/`CraftTimeSeconds`/`RequiredMachineType`), `URecipeProcessorComponent` (stateless `CanProduce` + `TryProduceOneCycle`), `AHI_FabricatorMachine` (`SelectedRecipe` drives `ProductionInterval` from `CraftTimeSeconds`). Pressure Plate Mk1 recipe wired (3× manganese + 2× basalt → 1, 4s). `GrantToTargetMachine` exec helper for input deposit pre-M5. |
+| M5 Power + Logistics | next | |
 | M6 Pressure + Depth | future | `EHI_PressureTier` enum already in `HI_Types.h`. |
 | M7 Threat + Creature | future | |
 | M8 Narrative slice | future | |
@@ -125,49 +125,53 @@ Before implementing any new feature/system, search [https://www.fab.com/](https:
 
 - Author all commits with `--author="Davide Sidoti <sidotidavide@gmail.com>"`. The local git config already sets this.
 - Commits include `Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>` trailer.
-- Conventional commit prefixes in use: `feat(m0)`, `feat(m1)`, `feat(m2)`, `feat(m3)`, `feat(m4a)`, `chore(m1)`. Continue this scheme for future milestones.
+- Conventional commit prefixes in use: `feat(m0)`, `feat(m1)`, `feat(m2)`, `feat(m3)`, `feat(m4a)`, `feat(m4b)`, `chore(m1)`. Continue this scheme for future milestones.
 - Always commit with a HEREDOC body (multi-paragraph). Example layout used so far: short subject, blank line, bulleted summary of what changed.
 - LFS is configured for `.uasset`, `.umap`, `.fbx`, `.psd`, `.jpg`. The first push of a milestone may be GB-scale — that is fine.
 - **Never** commit unless the user has explicitly asked.
 
 ---
 
-## M4 status
+## M4 status — closed 2026-05-04
 
-**M4a (Machine base + Extractor) shipped 2026-05-03.** Code lives at:
+Pipeline harvest → automated production verified end-to-end in PIE. Place an extractor near a `BP_HI_ResourceNode_Manganese` and a fabricator next to it; deposit input via `GrantToTargetMachine`; pressure plate Mk1 lands in the fabricator's output every 4 s; drain via `E`.
+
+**Code locations:**
 
 ```
-Public/Machines/HI_MachineBase.h           # AHI_MachineBase : AHI_BuildableActor + IHI_InteractableInterface
-Public/Machines/HI_ExtractorMachine.h      # AHI_ExtractorMachine : AHI_MachineBase
+Public/Machines/HI_MachineBase.h              # AHI_MachineBase : AHI_BuildableActor + IHI_InteractableInterface
+Public/Machines/HI_ExtractorMachine.h         # AHI_ExtractorMachine : AHI_MachineBase
+Public/Machines/HI_FabricatorMachine.h        # AHI_FabricatorMachine : AHI_MachineBase
+Public/Recipes/HI_RecipeDefinition.h          # UHI_RecipeDefinition : UDataAsset
+Public/Recipes/HI_RecipeProcessorComponent.h  # URecipeProcessorComponent : UActorComponent (stateless)
 Private/Machines/HI_MachineBase.cpp
 Private/Machines/HI_ExtractorMachine.cpp
+Private/Machines/HI_FabricatorMachine.cpp
+Private/Recipes/HI_RecipeProcessorComponent.cpp
 ```
 
-**`AHI_MachineBase` actual shape** — Input/Output `UHI_InventoryComponent` subobjects, `FTimerHandle` production loop (NOT actor Tick) calling virtual `TickProduction()` every `ProductionInterval` seconds. `IsProductionAllowed()` accessor reads `bPowerSatisfied`/`bPressureSafe` stub bools (replaced by component-driven checks in M5/M6). Implements `IHI_InteractableInterface` so `E` drains Output → Interactor inventory. Overrides `AHI_BuildableActor::OnPreDemolish` to dump Input + Output back to player on demolish. Static `ActiveMachines` registry for HUD/scanner/save reuse. `EHI_MachineState` enum lives in `Core/HI_Types.h`.
+**`AHI_MachineBase` actual shape** — Input/Output `UHI_InventoryComponent` subobjects, `FTimerHandle` production loop driven by `RestartProductionTimer()` (called from `BeginPlay`; subclasses can re-arm after changing `ProductionInterval` mid-life). Virtual `TickProduction()`. `IsProductionAllowed()` accessor over `bPowerSatisfied`/`bPressureSafe` stub bools (M5/M6 swap point). `SetState(EHI_MachineState)` returns bool — subclasses gate one-shot transition logs on `if (SetState(...))` to avoid per-tick spam. Implements `IHI_InteractableInterface` so `E` drains Output → Interactor inventory. Overrides `AHI_BuildableActor::OnPreDemolish` to dump Input + Output back to player on demolish. Static `ActiveMachines` registry for HUD/scanner/save reuse. `EHI_MachineState` enum in `Core/HI_Types.h`.
 
-**`AHI_ExtractorMachine` actual shape** — `BindRadius=300cm`. BeginPlay calls `TryBindNearestNode` (filters `UGameplayStatics::GetAllActorsOfClass<AHI_ResourceNode>` by squared distance). `TickProduction` re-scans when `BoundNode` is invalid (handles the "place after node depleted" case). Yield consumption goes through `AHI_ResourceNode::TryConsumeYield(int32, FName&)` — encapsulates the `RemainingYield--` write. If output is full, the unit is credited back to the node so yield isn't lost.
+**`AHI_ExtractorMachine` actual shape** — `BindRadius=300cm`. BeginPlay logs the initial bind result; `TryBindNearestNode` itself stays silent on failure. `TickProduction` re-scans when `BoundNode` is invalid (handles "place after node depleted"). Yield consumption via `AHI_ResourceNode::TryConsumeYield(int32, FName&)`. Yield refund-to-node when output is full so units don't disappear.
 
-**Demolish refund + dump-back.** `UHI_BuildManagerComponent::DemolishTargeted` now calls `Target->OnPreDemolish(PlayerInv)` before `Destroy()`, so machines return their inventory contents to the player in addition to the 50% build-cost refund.
+**`AHI_FabricatorMachine` actual shape** — `UHI_RecipeDefinition* SelectedRecipe` (BP-assigned). `URecipeProcessorComponent* RecipeProcessor` subobject. BeginPlay: `ProductionInterval = SelectedRecipe->CraftTimeSeconds` BEFORE `Super::BeginPlay()` so the timer arms with the recipe's craft time. `TickProduction` delegates: gate `IsProductionAllowed` → check `CanProduce` → `TryProduceOneCycle` → SetState Producing/Idle. Idle log gated on transition.
 
-### M4b (Recipe + Fabricator) — next slice
+**`URecipeProcessorComponent` shape** — Stateless. `CanProduce(Recipe, Input, Output)` checks input availability via `HasItem`; output capacity check is best-effort (AddStack spills into MaxSlots). `TryProduceOneCycle` consumes inputs first (so partial output failure can't double-spend) then deposits outputs; logs warning on leftover.
 
-```
-Public/Recipes/HI_RecipeDefinition.h        # UHI_RecipeDefinition : UDataAsset
-Public/Recipes/HI_RecipeProcessorComponent.h # URecipeProcessorComponent : UActorComponent
-Public/Machines/HI_FabricatorMachine.h       # AHI_FabricatorMachine : AHI_MachineBase
-```
+**Demolish refund + dump-back.** `UHI_BuildManagerComponent::DemolishTargeted` calls `Target->OnPreDemolish(PlayerInv)` before `Destroy()`. Machines return Input+Output to the player on top of the 50% build-cost refund.
 
-`UHI_RecipeDefinition` fields: `FName RecipeId`, `FText DisplayName`, `TArray<FHI_ItemStack> Inputs`, `Outputs`, `float CraftTimeSeconds`, `FName RequiredMachineType`. `URecipeProcessorComponent` validates inputs against InputInventory, consumes on craft begin, advances progress, deposits outputs on completion. `AHI_FabricatorMachine` selects a recipe (`UHI_RecipeDefinition* SelectedRecipe`); `TickProduction` delegates to the processor.
+**Dev helper** — `UFUNCTION(Exec) AHI_PlayerCharacter::GrantToTargetMachine(FName, int32)` line-traces 600 cm forward; if hit is `AHI_MachineBase`, AddStack on its `InputInventory`. Unblocks M4b testing without M5 logistics.
 
-**Assets needed for M4b:**
-- `DA_Item_Basalt`, `DA_Item_PressurePlateMk1`.
-- `DA_Recipe_PressurePlateMk1` (3× manganese + 2× basalt → 1× pressure plate, 4 s).
-- `BP_HI_ResourceNode_Basalt` (placeholder).
-- `BP_HI_Buildable_Fabricator_Mk1` + `DA_Buildable_FabricatorMk1`.
+### Known cosmetic quirk
 
-**Architectural note for M4b implementer:**
-- Live Coding will reject the new `UCLASS` declarations + new component subobjects (`URecipeProcessorComponent` on `AHI_FabricatorMachine`). Plan for one full rebuild with editor closed at the start of M4b.
-- M5 (Power) will plug in via a `UHI_PowerConsumerComponent` attached to `AHI_MachineBase`, replacing the `bPowerSatisfied` stub behind `IsProductionAllowed()`.
+`BP_HI_PlayerCharacter.InventoryComponent.KnownItems` should include all items the player can hold — currently only `DA_Item_Manganese` is registered. Without the entry, `GetMaxStackSizeFor` falls back to 1, so basalt and pressure plates land in the player inventory as 1-per-slot. Add `DA_Item_Basalt` and `DA_Item_PressurePlateMk1` to the player's `KnownItems` to fix.
+
+### M5 (Power + Logistics) — next milestone
+
+Drop-in points already prepared:
+- `bPowerSatisfied` bool on `AHI_MachineBase` is the swap target — replace with reads from a future `UHI_PowerConsumerComponent`. `IsProductionAllowed()` accessor stays, internals change. No call-site churn.
+- New folders: `Public/Power/` (`HI_PowerComponent`, `HI_PowerProducerComponent`, `HI_PowerConsumerComponent`, `HI_PowerCableActor`, `HI_PowerNetworkSubsystem`), `Public/Logistics/` (`HI_CargoTubeActor` for source/dest binding between two `UHI_InventoryComponent` with timed transfer).
+- Live Coding will reject the new `UCLASS` declarations and new component subobjects on `AHI_MachineBase`. Plan one full rebuild with editor closed at the start of M5.
 
 ---
 

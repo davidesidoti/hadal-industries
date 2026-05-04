@@ -14,6 +14,7 @@
 #include "Core/HI_Log.h"
 #include "Interaction/HI_InteractionComponent.h"
 #include "Inventory/HI_InventoryComponent.h"
+#include "Machines/HI_MachineBase.h"
 #include "Scanning/HI_ScannerComponent.h"
 
 AHI_PlayerCharacter::AHI_PlayerCharacter()
@@ -73,6 +74,47 @@ void AHI_PlayerCharacter::DumpInventory()
 	{
 		InventoryComponent->DebugLogContents();
 	}
+}
+
+void AHI_PlayerCharacter::GrantToTargetMachine(FName ItemId, int32 Quantity)
+{
+	if (Quantity <= 0 || ItemId.IsNone())
+	{
+		UE_LOG(LogHadalIndustries, Warning, TEXT("GrantToTargetMachine: invalid args (%s x%d)"), *ItemId.ToString(), Quantity);
+		return;
+	}
+
+	const FVector Start = FirstPersonCameraComponent ? FirstPersonCameraComponent->GetComponentLocation() : GetActorLocation();
+	const FVector Forward = FirstPersonCameraComponent ? FirstPersonCameraComponent->GetForwardVector() : GetActorForwardVector();
+	const FVector End = Start + Forward * 600.0f;
+
+	FCollisionQueryParams Params(SCENE_QUERY_STAT(HI_GrantTargetTrace), false, this);
+	FHitResult Hit;
+	if (!GetWorld() || !GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Visibility, Params))
+	{
+		UE_LOG(LogHadalIndustries, Warning, TEXT("GrantToTargetMachine: no hit forward"));
+		return;
+	}
+
+	AHI_MachineBase* Machine = Cast<AHI_MachineBase>(Hit.GetActor());
+	if (!Machine)
+	{
+		UE_LOG(LogHadalIndustries, Warning, TEXT("GrantToTargetMachine: hit %s is not an AHI_MachineBase"),
+			Hit.GetActor() ? *Hit.GetActor()->GetName() : TEXT("<null>"));
+		return;
+	}
+
+	UHI_InventoryComponent* Input = Machine->InputInventory;
+	if (!Input)
+	{
+		UE_LOG(LogHadalIndustries, Warning, TEXT("GrantToTargetMachine: machine %s has no InputInventory"), *Machine->GetName());
+		return;
+	}
+
+	const int32 Leftover = Input->AddStack(ItemId, Quantity);
+	UE_LOG(LogHadalIndustries, Log, TEXT("GrantToTargetMachine: %s x%d -> %s (leftover %d)"),
+		*ItemId.ToString(), Quantity, *Machine->GetName(), Leftover);
+	Input->DebugLogContents();
 }
 
 void AHI_PlayerCharacter::PawnClientRestart()
