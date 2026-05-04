@@ -162,16 +162,73 @@ Private/Recipes/HI_RecipeProcessorComponent.cpp
 
 **Dev helper** — `UFUNCTION(Exec) AHI_PlayerCharacter::GrantToTargetMachine(FName, int32)` line-traces 600 cm forward; if hit is `AHI_MachineBase`, AddStack on its `InputInventory`. Unblocks M4b testing without M5 logistics.
 
-### Known cosmetic quirk
+---
 
-`BP_HI_PlayerCharacter.InventoryComponent.KnownItems` should include all items the player can hold — currently only `DA_Item_Manganese` is registered. Without the entry, `GetMaxStackSizeFor` falls back to 1, so basalt and pressure plates land in the player inventory as 1-per-slot. Add `DA_Item_Basalt` and `DA_Item_PressurePlateMk1` to the player's `KnownItems` to fix.
+## M5 plan (Power + Logistics) — next milestone
 
-### M5 (Power + Logistics) — next milestone
+Reference: MVP_PLAN sez. 10 (Cargo Tube + Thermal Generator), sez. 13 (Power), sez. 27 (M5 acceptance criteria).
 
-Drop-in points already prepared:
-- `bPowerSatisfied` bool on `AHI_MachineBase` is the swap target — replace with reads from a future `UHI_PowerConsumerComponent`. `IsProductionAllowed()` accessor stays, internals change. No call-site churn.
-- New folders: `Public/Power/` (`HI_PowerComponent`, `HI_PowerProducerComponent`, `HI_PowerConsumerComponent`, `HI_PowerCableActor`, `HI_PowerNetworkSubsystem`), `Public/Logistics/` (`HI_CargoTubeActor` for source/dest binding between two `UHI_InventoryComponent` with timed transfer).
-- Live Coding will reject the new `UCLASS` declarations and new component subobjects on `AHI_MachineBase`. Plan one full rebuild with editor closed at the start of M5.
+**Goal of M5:** machines stop working when unpowered; items can flow extractor → fabricator without the `GrantToTargetMachine` dev helper. After M5 the player should place `BP_HI_Buildable_Extractor_Mk1` on a manganese node, place `BP_HI_Buildable_Fabricator_Mk1` next to it, connect them with a `BP_HI_Cable_PowerMk1` and a `BP_HI_CargoTube_Mk1`, and watch pressure plates appear in the fabricator's output without further interaction.
+
+**Suggested split:**
+
+- **M5a — Power skeleton:** producer/consumer/cable + network subsystem + Deep Anchor as starter producer. Replace `bPowerSatisfied` stub on `AHI_MachineBase` with reads from `UHI_PowerConsumerComponent`. Acceptance: cut the cable, machine stops; reconnect, resumes.
+- **M5b — Cargo Tube:** source/destination binding between two `UHI_InventoryComponent`, timed transfer. Acceptance: extractor output drains into fabricator input automatically; recipe ticks without `GrantToTargetMachine`.
+- **M5c (optional, M5 polish):** Thermal Generator Mk1 + heat-zone hazard placeholder, second power source so player can extend network beyond Deep Anchor radius.
+
+**New C++ classes (proposed):**
+
+```
+Public/Power/
+  HI_PowerComponent.h              # Base shared interface (network id, registration helpers)
+  HI_PowerProducerComponent.h      # UHI_PowerProducerComponent : UHI_PowerComponent (Generation float)
+  HI_PowerConsumerComponent.h      # UHI_PowerConsumerComponent : UHI_PowerComponent (Demand float, IsSatisfied())
+  HI_PowerCableActor.h             # AHI_PowerCableActor : AHI_BuildableActor (two endpoints, contributes to network connectivity)
+  HI_PowerNetworkSubsystem.h       # UHI_PowerNetworkSubsystem : UWorldSubsystem
+  HI_ThermalGenerator.h            # AHI_ThermalGenerator : AHI_MachineBase + UHI_PowerProducerComponent  (M5c)
+
+Public/Logistics/
+  HI_CargoTubeActor.h              # AHI_CargoTubeActor : AHI_BuildableActor (Source/Dest UHI_InventoryComponent refs, ItemsPerMinute)
+```
+
+**`UHI_PowerNetworkSubsystem` shape (`UWorldSubsystem`):**
+- Maintains `TArray<TWeakObjectPtr<UHI_PowerProducerComponent>>` and `TArray<TWeakObjectPtr<UHI_PowerConsumerComponent>>`.
+- Components register in `BeginPlay` of their owning actor, unregister in `EndPlay`.
+- On registration changes, runs a connectivity walk: producers and consumers connected via cables form a network; isolated consumers are unsatisfied. MVP simplification: skip the cable-graph walk for the first slice — treat all registered producers/consumers as one global network (so any producer → all consumers). Layer cable connectivity on top once the global path works.
+- Per tick (or on event): sum `Generation` and `Demand`. If `Demand > Generation`, mark all consumers `bIsSatisfied=false`.
+
+**`UHI_PowerConsumerComponent` shape:**
+- `float Demand = 1.0f` (kW-equivalent, abstract).
+- `bool bIsSatisfied = true` (updated by subsystem).
+- `IsSatisfied()` accessor — what `AHI_MachineBase::bPowerSatisfied` becomes.
+
+**`AHI_MachineBase` swap:**
+- Replace `UPROPERTY(EditDefaultsOnly) bool bPowerSatisfied` with `UPROPERTY(VisibleAnywhere) UHI_PowerConsumerComponent* PowerConsumer` subobject.
+- Update `IsProductionAllowed()`: `return (PowerConsumer ? PowerConsumer->IsSatisfied() : true) && bPressureSafe;`. **No subclass changes needed** thanks to the existing accessor.
+- Extractor and Fabricator inherit the new subobject for free.
+
+**`AHI_CargoTubeActor` shape:**
+- Two designer-set `AHI_BuildableActor*` references (Source, Destination) — at runtime resolves their `OutputInventory` (source) and `InputInventory` (destination) via `Cast<AHI_MachineBase>`.
+- `float ItemsPerMinute = 60.0f`. `FTimerHandle` ticking at `60 / ItemsPerMinute` seconds.
+- Per tick: snapshot first non-empty Source slot, call `Source->TransferTo(Dest, Slot.ItemId, 1)`. Stop when source is empty or dest is full.
+- Visual: a thin static mesh between the two endpoints. No animated capsules in MVP.
+- For first slice, accept "place tube + manually pick endpoints in BP" rather than building a full graph editor.
+
+**Acceptance criteria (per MVP_PLAN sez. 27):**
+- Machines only work when powered (extractor stops when cable cut).
+- Deep Anchor provides starter power within range.
+- Thermal Generator adds power (M5c).
+- Cargo Tube transfers items from extractor to fabricator with no dev console intervention.
+
+**Editor work the user will need post-build:**
+- Create `BP_HI_Buildable_PowerCable_Mk1`, `BP_HI_Buildable_CargoTube_Mk1`, `DA_Buildable_*` for each.
+- Wire them into `BP_HI_PlayerCharacter.BuildManagerComponent.AvailableBuildables`.
+- Reparent any future generator BP to its concrete C++ class.
+
+**Architectural notes for M5 implementer:**
+- Live Coding will reject the new `UCLASS` declarations and the new `UHI_PowerConsumerComponent` subobject on `AHI_MachineBase`. Plan one full rebuild with editor closed at the start of M5.
+- Once `UHI_PowerConsumerComponent` exists, the `bPowerSatisfied` field on `AHI_MachineBase` can either be removed or kept as a manual override flag for testing. Prefer remove + use a dev console exec like `SetPowerOverride <true|false>` if a manual escape hatch is needed.
+- The static `AHI_MachineBase::ActiveMachines` registry is already in place; M5's CargoTube/PowerNetwork can use it for proximity queries.
 
 ---
 

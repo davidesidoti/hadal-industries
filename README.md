@@ -107,6 +107,7 @@ When the editor is **open**, prefer **Live Coding** with `Ctrl+Alt+F11`. It reco
 |---|---|
 | `GrantItem <ItemId> <Qty>` | Add items to player inventory. Example: `GrantItem res_manganese_nodule 10` |
 | `DumpInventory` | Log current inventory to Output Log |
+| `GrantToTargetMachine <ItemId> <Qty>` | Line-trace forward; if hit is a machine, add items to its `InputInventory`. Unblocks fabricator testing pre-logistics. Example: `GrantToTargetMachine res_basalt 5` |
 
 Filter the Output Log by `LogHadalIndustries` to see project events.
 
@@ -118,7 +119,7 @@ Filter the Output Log by `LogHadalIndustries` to see project events.
 hadal-industries/
 ├── Config/                          # DefaultEngine.ini, DefaultGame.ini, ...
 ├── Content/
-│   ├── Blueprints/                  # BP_HI_GameMode, BP_HI_PlayerCharacter, BP_HI_ResourceNode_Manganese
+│   ├── Blueprints/                  # BP_HI_GameMode, BP_HI_PlayerCharacter, BP_HI_ResourceNode_Manganese, BP_HI_ResourceNode_Basalt
 │   │   └── Buildables/              # BP_HI_Buildable_Foundation_Mk1, BP_HI_Buildable_Extractor_Mk1, BP_HI_Buildable_Fabricator_Mk1
 │   ├── Characters/                  # Mannequin (template carryover, used by player BP)
 │   ├── DeepWaterStation/            # Deep-water environment art (Fab vendored)
